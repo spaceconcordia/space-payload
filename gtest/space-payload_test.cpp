@@ -8,7 +8,7 @@ class space-payload_Test : public ::testing::Test
 };
 
 // Test writing to the helium device
-TEST_F(space-payload_Test, BoilerPlate)
+TEST_F(space-payload_Test, ReturnMaxPeaksWithTimestamps)
 {
     ASSERT_EQ(
         0, // expected
