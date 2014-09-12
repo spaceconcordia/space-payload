@@ -1,0 +1,15 @@
+Raw Peaks Testing Data Files Information
+
+These are the maximum values and their positions in the list. These text files are to be used to test the payload logic for locating and logging max peak values.
+
+File: rawPeaksData1.txt
+Max: 250
+Occurs at Element # (zero-indexed): 4058
+
+File: rawPeaksData2.txt 
+Max: 249 x 2 
+Occurs at Element # (zero-indexed): 4396, 4756
+
+File: rawPeaksData3.txt
+Max: 250 x 3
+Occurs at Element # (zero-indexed): 2040, 2640, 4380
