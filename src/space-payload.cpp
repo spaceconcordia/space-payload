@@ -1,4 +1,4 @@
-/* 
+/*
 
 Consat-1 Payload Simulation Version 2
 Author: Austin Hubbell (August 2014)
@@ -30,34 +30,40 @@ TODO:
     out of simulation
    -Implement logging using shakespeare
    -Add timestamp to each measurement using millisecond precision
- 
+stop 2ms
+
+maketime()
+
+check if in anomoly
 */
 
 
 #include <iostream>
-#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
-#include <array>
 #include <fstream>
 #include <string>
 #include <cstdlib>
 
+#define LOG_PATH "/home/logs"
+
 using namespace std;
 
+#define PROCESS "payload"
 #define RAW_PEAKS_FILE_PATH "file path here"
 
 int main(int argc, const char * argv[])
 {
- 
+
     //Number of data elements sent in each transmission, number of transmissions
     //NOTE: These values determine the "length" of the simulation
     const int NUM_MEASUREMENTS = 1000;
     const int NUM_TRANSMISSIONS = 5;
-    
+
     //Creates an array with each column corresponding to one transmission and
     //each row within a colum being one measurement in that transmission
     double analogPeaks[NUM_MEASUREMENTS][NUM_TRANSMISSIONS] = {0};
-    
+
     //TODO: Get peaks data using I2C instead of text file
     string line;
     ifstream rawPeaksFile("rawPeaksData.txt");
@@ -67,30 +73,30 @@ int main(int argc, const char * argv[])
         int column = 0;
         while(getline(rawPeaksFile, line)) {
             if(row < (NUM_MEASUREMENTS-1)) {
-                analogPeaks[row][column] = atof(line);
+                analogPeaks[row][column] = atof(line.c_str());
                 row += 1;
                 continue;
             }
             if(row == (NUM_MEASUREMENTS-1)) {
-                analogPeaks[row][column] = atof(line);
+                analogPeaks[row][column] = atof(line.c_str());
                 row = 0;
                 column += 1;
             }
         }
         rawPeaksFile.close();
     }
-    
+
     //Fill time array with values (each column corresponds to one "transmission")
     int time[NUM_MEASUREMENTS][NUM_TRANSMISSIONS] = {0};
     int count = 0;
-    
+
     for (int i=0; i<NUM_TRANSMISSIONS; i++) {
         for (int j=0; j<NUM_MEASUREMENTS; j++) {
             time[j][i] = count;
             count += 1;
         }
     }
-    
+
     //Array to store the max value of each transmission
     double maxPeaks[NUM_TRANSMISSIONS][2] = {0};
     //For simplification purposes, the data is assumed to have already been
@@ -102,12 +108,12 @@ int main(int argc, const char * argv[])
         for (int j=0; j<NUM_MEASUREMENTS; j++) {
             timeData[j] = time[j][i];
         }
-        
+
         double peakData[NUM_MEASUREMENTS] = {0};
         for(int j=0; j<NUM_MEASUREMENTS; j++) {
             peakData[j] = analogPeaks[j][i];
         }
-    
+
         //Compare all elements of peakData to find the max
         //After this is run, the max will be stored in "peakVal"
         double maxPeakVal = peakData[0];
@@ -118,19 +124,18 @@ int main(int argc, const char * argv[])
                 maxPeakValTime = timeData[j];
             }
         }
-    
+
         //Log the peak value and time to the permanent storage array
         //TODO: shakespeare logging here
         maxPeaks[i][0] = maxPeakValTime;
         maxPeaks[i][1] = maxPeakVal;
-    
+
         cout << maxPeakVal << endl;
         cout << maxPeakValTime << endl;
     }
-    
+
     //TODO: Log "analogPeaks" and "maxPeaks" using shakespeare
-    
+
     cout << "Simulation Terminated Successfully!\n";
     return 0;
 }
-
