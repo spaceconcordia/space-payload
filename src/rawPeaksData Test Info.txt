@@ -4,12 +4,12 @@ These are the maximum values and their positions in the list. These text files a
 
 File: rawPeaksData1.txt
 Max: 250
-Occurs at Element # (zero-indexed): 4058
+Occurs at Element # (zero-indexed): 1660
 
 File: rawPeaksData2.txt 
 Max: 249 x 2 
-Occurs at Element # (zero-indexed): 4396, 4756
+Occurs at Element # (zero-indexed): 10, 4408
 
 File: rawPeaksData3.txt
 Max: 250 x 3
-Occurs at Element # (zero-indexed): 2040, 2640, 4380
+Occurs at Element # (zero-indexed): 802, 4234, 4958
