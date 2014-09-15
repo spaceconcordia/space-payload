@@ -19,35 +19,41 @@
 #ifndef SPACE_PAYLOAD_H
 #define SPACE_PAYLOAD_H
 
+#define LOG_PATH "/home/logs"
+#define PROCESS "payload"
+#include <iostream>
+#include <fstream>
+#include <string.h>
 using namespace std;
 
 //Prototype all functions here
 
 //Function for reading in data from a text file
 //Input file is assumed to be in the same directory as this program
-unsigned long long *readBinaryData (string fileName, long numLines) {
-  unsigned long long data[numLines];
+string *readBinaryData (string fileName, long numLines) {
+  string data[numLines];
   string line;
   ifstream dataFile(fileName);
   if(dataFile.is_open()) {
-    unsigned long count = 0;
+    long count = 0;
     while(getline(dataFile, line)) {
-      data[count] = atoi(line.c_str());
+      data[count] = line;
+      count += 1;
     }
     dataFile.close();
+    return data;
   }
   else {
-    //TODO: Else condition if file doesn't open (if data is not available?)
+    //TODO: Correct for proper file error code
+    return 1;
   }
-  unsigned long long *dataPointer = data;
-  return dataPointer;
 }
 
 //Reshape a one-dimensional array into a two-dimensional array (non-jagged assumed)
-unsigned long long **reshape (unsigned long long *oneDimData, unsigned long numRows, unsigned long numColumns) {
+string **reshape (string *oneDimData, unsigned long numRows, unsigned long numColumns) {
   unsigned long row = 0;
   unsigned long column = 0;
-  unsigned long long **twoDimData;
+  string **twoDimData;
 
   for (int i=0; i<sizeof(oneDimData); i++) {
     if(row < (numRows)) {
@@ -61,31 +67,33 @@ unsigned long long **reshape (unsigned long long *oneDimData, unsigned long numR
       column += 1;
     }
   }
-  unsigned long long **twoDimDataPointer = twoDimData;
-  return twoDimDataPointer;
+  return twoDimData;
 }
 
-/*
-
-//Finds the maximum value in dataArray, and the corresponding time element
-//The elements in "timeArray" must correspond with the values in "dataArray"
-float findMaxTimeAndVal[2] (float dataArray[], float timeArray) {
-  float maxVal = dataArray[0];
-  int maxValTime = timeArray[0];
-
-  for(int i=1; j<dataArray.length; i++) {
-    if(peakData[i] > maxVal) {
-      maxVal = peakData[i];
-      maxValTime = timeArray[j];
+//Log array of strings using shakespeare
+int logToShakespeare (string *peakTime, string *peakVal) {
+  //Check for null pointers
+  if(peakTime && peakVal) {
+    //Check if dimensions of arrays match
+    if (sizeof(peakTime) == sizeof(peakVal)) {
+      for (int i=0; i<sizeof(peakTime); i++) {
+        string dataString = peakTime[i] + peakVal[i];
+        //TODO: set log priority to appropriate value
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, dataString);
+      }
+      //Sucess
+      return 0;
+    }
+    else {
+      //TODO: change to appropriate data error code
+      return 2;
     }
   }
-
-  float returnArray[] = {maxValTime, maxVal};
-
-  return returnArray;
+  //TODO: change to appropriate null pointer error code
+  return 1;
 }
 
-*/
+
 
 
 

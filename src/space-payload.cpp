@@ -39,27 +39,28 @@ check if in anomoly
 
 
 #include <iostream>
-#include <fstream>
 #include "../inc/space-payload.h"
+#include <string.h>
+//#include "shakespeare.h"
 
 using namespace std;
 
-#define LOG_PATH "/home/logs"
-#define PROCESS "payload"
 #define RAW_PEAKS_FILE_PATH "rawPeaksData1.txt"
+#define NUM_MEASUREMENTS 1000
+#define NUM_TRANSMISSIONS 5
+#define DEAD_TIME_SEC 0.002 //2ms dead time
 
 int main(int argc, const char * argv[])
 {
-  //Number of data elements sent in each transmission, total number of transmissions
-  const int NUM_MEASUREMENTS = 1000;
-  const int NUM_TRANSMISSIONS = 5;
-
-
   //TODO: Use I2C to retrieve data and store in binaryPeakData array
   //1-dimensional array storing peak magnitude values
-  unsigned long long *binaryPeaks;
-  binaryPeaks = readBinaryData(RAW_PEAKS_FILE_PATH, NUM_MEASUREMENTS*NUM_TRANSMISSIONS);
-  //2-dimensional array, each column is one "transmission"
+  string binaryPeaks[NUM_MEASUREMENTS*NUM_TRANSMISSIONS];
+  //Check if readBinaryData is successful
+  //TODO: check for proper error code
+  if (readBinaryData(RAW_PEAKS_FILE_PATH, NUM_MEASUREMENTS*NUM_TRANSMISSIONS) != 1) {
+    binaryPeaks = readBinaryData(RAW_PEAKS_FILE_PATH, NUM_MEASUREMENTS*NUM_TRANSMISSIONS);
+  }
+
   unsigned long long **binaryPeakData = reshape(binaryPeaks, NUM_MEASUREMENTS, NUM_TRANSMISSIONS);
 
   //Time between geiger counter activation and event detection
@@ -70,11 +71,14 @@ int main(int argc, const char * argv[])
   clock_t start_time;
   clock_t elapsed_time;
 
+  const long numCols = sizeof(binaryPeakData[0])/sizeof(long);
+  const long numRows = sizeof(binaryPeakData)/sizeof(binaryPeakData[0]);
 
-  for (int i=0; i<(sizeof(binaryPeakData[0])/sizeof(long)); i++) {
-    unsigned long long tempBinaryPeakData[sizeof(binaryPeakData)/sizeof(binaryPeakData[0])];
-    float tempTimeData[sizeof(binaryPeakData)/sizeof(binaryPeakData[0])];
-    for(int j=0; j<(sizeof(binaryPeakData)/sizeof(binaryPeakData[0])); j++) {
+
+  for (int i=0; i<numCols; i++) {
+    unsigned long long tempBinaryPeakData[numRows];
+    float tempTimeData[numRows];
+    for(int j=0; j<numRows; j++) {
       //TODO: Activate geiger counter
 
       start_time = clock();
@@ -86,7 +90,7 @@ int main(int argc, const char * argv[])
 
       //Begin 2ms dead time
       start_time = clock();
-      while((clock() - start_time) < 2e-3*CLOCKS_PER_SEC) {
+      while((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
         //Do logging in here so this time isn't wasted?
       }
 
