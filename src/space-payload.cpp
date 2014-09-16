@@ -1,40 +1,25 @@
 /*
-
-Consat-1 Payload Simulation Version 2
-Author: Austin Hubbell (August 2014)
+Consat-1 Payload Simulation Version 5
+Author: Austin Hubbell (September 2014)
 
 Note:
--One "measurement" is a single peak value
--One "transmission" is a group of peak values sent in between dead times
--The simulation uses one peak per time iteration, so peak frequency is
-determined by the number of measurements/transmissions
+-"detection time" is the time between the geiger counter being activated and a
+ peak being read in from I2C
+-One "measurement" is a single peak value and its detection time
 
 Pseudo-Code:
--Find the maximum value of a certain group of digital signals
--Record the frequency of events (frequency of the digital signals)
--Log input signal (from amplifier going to geiger counter)
--Logging should occur after each transmission (group of measurements)
+-Activate geiger counter
+-Wait for peak reading from I2C
+-Record the peak value and detection time in temporary variable
+-Log group of measurements to shakespeare
 
 Questions:
--The values being read in from Gieger counter, are they 8-byte floats?
--How many measurements will be sent inbetween deadtimes (NUM_MEASUREMENTS)?
--How should the rate of radiation events be determined, is there a
-timestamp attached to each data element or should the program request
-the current time from the clock and record it? Timestamp
--How to get the current time from onboard RTC?
--What to do if there are two max peaks of the same value in one transmission?
 
-TODO:
--Figure out how to process binary data (how to consider a bitstring as
-a number and not an array of characters), easy if conversion is left
-out of simulation
--Implement logging using shakespeare
--Add timestamp to each measurement using millisecond precision
-stop 2ms
+-How many measurements should be taken in between shakespeare logging (NUM_MEASUREMENTS)?
+-Time difference is being recorded using clock ticks, but can the date/time be attached to
+ each group of measurements from a higher process?
+-Will another process determine if Consat-1 is in anomoly and start payload?
 
-maketime()
-
-check if in anomoly
 */
 
 
@@ -46,61 +31,52 @@ check if in anomoly
 using namespace std;
 
 #define RAW_PEAKS_FILE_PATH "rawPeaksData1.txt"
-#define NUM_MEASUREMENTS 1000
-#define NUM_TRANSMISSIONS 5
+#define NUM_MEASUREMENTS 1000 //Number of measurements to take in a row
 #define DEAD_TIME_SEC 0.002 //2ms dead time
+//TODO: Define proper I2C bus address
+#define I2C_BUS_ADDRESS 0x51
+//TODO: Define proper Geiger counter device address
+#define I2C_DEVICE_ADDRESS 0x99
+#define I2C_PACKET_LENGTH 12
 
 int main(int argc, const char * argv[])
 {
-  //TODO: Use I2C to retrieve data and store in binaryPeakData array
-  //1-dimensional array storing peak magnitude values
-  string binaryPeaks[NUM_MEASUREMENTS*NUM_TRANSMISSIONS];
-  //Check if readBinaryData is successful
-  //TODO: check for proper error code
-  if (readBinaryData(RAW_PEAKS_FILE_PATH, NUM_MEASUREMENTS*NUM_TRANSMISSIONS) != 1) {
-    binaryPeaks = readBinaryData(RAW_PEAKS_FILE_PATH, NUM_MEASUREMENTS*NUM_TRANSMISSIONS);
-  }
-
-  unsigned long long **binaryPeakData = reshape(binaryPeaks, NUM_MEASUREMENTS, NUM_TRANSMISSIONS);
-
-  //Time between geiger counter activation and event detection
-  float eventTimes[NUM_MEASUREMENTS][NUM_TRANSMISSIONS] = {0};
-
-  //------------------Payload processing logic begins here----------------------
   //Timing variables
   clock_t start_time;
   clock_t elapsed_time;
 
-  const long numCols = sizeof(binaryPeakData[0])/sizeof(long);
-  const long numRows = sizeof(binaryPeakData)/sizeof(binaryPeakData[0]);
+  string tempBinaryPeakData[NUM_MEASUREMENTS];
+  string tempTimeData[NUM_MEASUREMENTS];
 
+  //Run the payload NUM_MEASUREMENTS times
+  for (int i=0; i<NUM_MEASUREMENTS; i++) {
+    //Geiger counter "turn on", record time it was "turned on"
+    activateGeiger();
+    start_time = clock();
+    bool eventFlag = false;
+    while (eventFlag == false) {
+      //Check if an event has occurred
+      if (checkEventOccurred() == 0) {
+        //Set event flag true to move to next measurement
+        eventFlag = true;
 
-  for (int i=0; i<numCols; i++) {
-    unsigned long long tempBinaryPeakData[numRows];
-    float tempTimeData[numRows];
-    for(int j=0; j<numRows; j++) {
-      //TODO: Activate geiger counter
+        //Once event is detected, determine elapsed time for detection
+        elapsed_time = clock() - start_time;
 
-      start_time = clock();
-
-      //TODO: Check if an event has occurred
-
-      //Once event is detected, determine elapsed time for detection
-      elapsed_time = clock() - start_time;
-
-      //Begin 2ms dead time
-      start_time = clock();
-      while((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
-        //Do logging in here so this time isn't wasted?
+        //Begin 2ms dead time
+        start_time = clock();
+        while((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
+          //Do logging in here so this time isn't wasted?
+        }
+        //Log peak magnitude and detection times to temporary variables
+        tempTimeData[i] = ((float)elapsed_time/CLOCKS_PER_SEC).c_str();
+        tempBinaryPeakData[i] = readFromI2C(connectToI2C(I2C_DEVICE_ADDRESS, I2C_BUS_ADDRESS));
       }
-
-      //Log peak magnitude and detection times to temporary variables
-      tempTimeData[j] = ((float)elapsed_time)/CLOCKS_PER_SEC;
-      tempBinaryPeakData[j] = binaryPeakData[j][i];
     }
-    //TODO: Log all data for this transmission using shakespeare
   }
+  //Log all peak magnitude and detection times for all measurements using Shakspeare
+  logToShakespeare(tempTimeData, tempBinaryPeakData);
 
-    cout << "Space-Payload Terminated Successfully!\n";
-    return 0;
+  cout << "Space-Payload Terminated Successfully!\n";
+  return 0;
 }
