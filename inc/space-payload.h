@@ -24,59 +24,17 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+//TODO: Include correct I2C libraries
+//#include <linux/i2c-dev.h>
+
 using namespace std;
 
 //Prototype all functions here
 
-//Function for reading in data from a text file
-//Input file is assumed to be in the same directory as this program
-string *readBinaryData (string fileName, const long numLines) {
-  string data[numLines] = {"\0"};
-  string line;
-  ifstream dataFile(fileName);
-  if(dataFile.is_open()) {
-    long count = 0;
-    while(getline(dataFile, line)) {
-      data[count] = line;
-      count += 1;
-    }
-    dataFile.close();
-    return data;
-  }
-  else {
-    //TODO: Correct for proper file error code
-    string errorString[1] = {"OPEN_FILE_ERROR"};
-    return errorString;
-  }
-}
-
-
-
-//Reshape a one-dimensional array into a two-dimensional array (non-jagged assumed)
-string **reshape (string *oneDimData, unsigned long numRows, unsigned long numColumns) {
-  unsigned long row = 0;
-  unsigned long column = 0;
-  string **twoDimData;
-
-  for (int i=0; i<sizeof(oneDimData); i++) {
-    if(row < (numRows)) {
-      twoDimData[row][column] = oneDimData[i];
-      row += 1;
-      continue;
-    }
-    if(row == (numRows-1)) {
-      twoDimData[row][column] = oneDimData[i];
-      row = 0;
-      column += 1;
-    }
-  }
-  return twoDimData;
-}
-
 //Log array of strings using shakespeare
 int logToShakespeare (string *peakTime, string *peakVal) {
   //Check for null pointers
-  if(peakTime && peakVal) {
+  if (peakTime && peakVal) {
     //Check if dimensions of arrays match
     if (sizeof(peakTime) == sizeof(peakVal)) {
       for (int i=0; i<sizeof(peakTime); i++) {
@@ -106,10 +64,11 @@ int connectToI2C(int deviceAddress, string i2cBus) {
   strcpy(filename, i2cBus.c_str());
 
   if ((file = open(filename, O_RDONLY)) < 0) {
-    //TODO: Produce error code here
+    //TODO: Produce file error code here
     return 1;
   }
-  else if (ioct1(file, I2C_SLAVE, deviceAddress)){
+  else if (ioct1(file, I2C_SLAVE, deviceAddress) < 0){
+    //TODO: Produce fail to acquire bus access or connect to slave error code
     return 2;
   }
   else {
@@ -125,7 +84,7 @@ char *readFromI2C (int i2cHandle) {
 
   if ((i2cHandle == 1) || (i2cHandle == 2) || (read(i2cHandle,rxBuffer,2) != 2)) {
     //TODO: set proper error code for fail to read I2C bus
-    rxBuffer[0] = "0x55";
+    rxBuffer[0] = 2;
     return rxBuffer;
   }
   else {
@@ -141,7 +100,7 @@ int checkEventOccurred () {
 
 //TODO: Implement activate geiger function
 int activateGeiger () {
-
+  return 0;
 }
 
 #endif /* !SPACE_PAYLOAD_H */
