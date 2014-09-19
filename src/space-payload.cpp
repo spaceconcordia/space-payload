@@ -6,6 +6,11 @@ Note:
 -"detection time" is the time between the geiger counter being activated and a
  peak being read in from I2C
 -One "measurement" is a single peak value and its detection time
+-size_t not unsigned
+-Turning on the payload board and G_M counter is GPIO not I2C
+-Make I2C read function and place in utls folder in space lib
+-Add I2Cio library cpp to space-lib/
+-Add date time ot each measurement or group of measurements
 
 Pseudo-Code:
 -Activate geiger counter
@@ -82,7 +87,9 @@ int main(int argc, const char * argv[])
         //Log peak magnitude and detection times to temporary variables
         tempTimeData[i] = ((float)elapsed_time/CLOCKS_PER_SEC);
         //Check if I2C available, if so read the peak value
+
         if (readFromI2C(connectToI2C(I2C_DEVICE_ADDRESS, I2C_BUS_ADDRESS))[0] != 2) {
+          //TODO: Make more readable
           tempBinaryPeakData[i] = readFromI2C(connectToI2C(I2C_DEVICE_ADDRESS, I2C_BUS_ADDRESS));
         }
         else {
@@ -95,11 +102,59 @@ int main(int argc, const char * argv[])
   //Log all peak magnitude and detection times for all measurements using Shakspeare
   if (logToShakespeare(tempTimeData, tempBinaryPeakData) == 0) {
     cout << "Space-Payload Terminated Successfully!\n";
-    return 0;
+    return CS1_SUCCESS;
   }
   else {
     cout << "Shakespeare logging error";
     //TODO: Proper shakespeare logging error code
     return 2;
   }
+}
+
+//Log array of strings using shakespeare
+int logToShakespeare (string *peakTime, string *peakVal) {
+  //Check for null pointers
+  if (peakTime && peakVal) {
+    //Check if dimensions of arrays match
+    if (sizeof(peakTime) == sizeof(peakVal)) {
+      for (size_t i=0; i<sizeof(peakTime); i++) {
+        string dataString = peakTime[i] + peakVal[i];
+        //TODO: set log priority to appropriate value
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, dataString);
+      }
+      //Sucess
+      return CS1_SUCCESS;
+    }
+    else {
+      //TODO: change to appropriate data error code
+      return 2;
+    }
+  }
+  //TODO: change to appropriate null pointer error code
+  return 1;
+}
+
+//Note: I2C reading/connecting adapted from
+// http://elinux.org/Interfacing_with_I2C_Devices#Reading_from_the_ADC
+//Connect to I2C bus, return I2C handler
+int connectToI2C(int deviceAddress, string i2cBus) {
+  return CS1_SUCCESS;
+}
+
+//TODO look into pointers, allocate memory before passing pointer (no functions for allocating)
+//Returns one one 12-bit reading in the form of a char array
+int readFromI2C (char *data, int i2cHandle) {
+
+  return CS1_SUCCESS;
+}
+
+//TODO: Implement check event occurred function
+int checkEventOccurred () {
+
+  return CS1_SUCCESS;
+}
+
+//TODO: Implement activate geiger function
+int activateGeiger () {
+  return CS1_SUCCESS;
 }
