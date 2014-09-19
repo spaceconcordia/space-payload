@@ -19,15 +19,17 @@ Questions:
 -Time difference is being recorded using clock ticks, but can the date/time be attached to
  each group of measurements from a higher process?
 -Will another process determine if Consat-1 is in anomoly and start payload?
--List of error codes for entire project needed so new ones can be made
+-List of error codes for entire project needed so new ones can be made spacedecl.h
+-Error codes in CPP file
 
 */
 
 
 #include <iostream>
+#include <SpaceDecl.h>
+#include <shakespeare.h>
 #include "../inc/space-payload.h"
 #include <string.h>
-//#include "shakespeare.h"
 
 using namespace std;
 
@@ -48,6 +50,8 @@ int main(int argc, const char * argv[])
 
   string tempBinaryPeakData[NUM_MEASUREMENTS];
   string tempTimeData[NUM_MEASUREMENTS];
+
+  cout << CS1_SUCCESS;
 
   //Run the payload NUM_MEASUREMENTS times
   for (int i=0; i<NUM_MEASUREMENTS; i++) {

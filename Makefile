@@ -8,17 +8,20 @@ MICROCCPATH=/home/ty/XiphosDevEnv/petalinux-v12.12-mbel/bin
 CFLAGS=-Wall
 MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -mlittle-endian -Wall
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
-INCPATH=-I./inc/ -I../space-lib/include/
-LIBPATH=-L./lib/ -L../space-lib/shakespeare/lib
+
+SHAKESPEARE_PATH=../space-lib/shakespeare/
+SPACELIBINCLUDE_PATH=../space-lib/include/
+INCPATH=-I./inc/ -I$(SPACELIBINCLUDE_PATH) -I$(SHAKESPEARE_PATH)/inc
+LIBPATH=-L./lib/ -L$(SHAKESPEARE_PATH)/lib
+
+buildBin: mkdir $(SHAKESPEARE_PATH)/inc/shakespeare.h $(SPACELIBINCLUDE_PATH)/SpaceDecl.h
+	$(CPP) $(CFLAGS) $(INCPATH) $(LIBPATH) src/*.cpp -lshakespeare -o bin/$(JOBNAME)-x86 -lshakespeare
+
+buildQ6: mkdir $(SHAKESPEARE_PATH)/shakespeare.h $(SPACELIBINCLUDE_PATH)/SpaceDecl.h
+	$(MICROCPP) $(MICROCFLAGS) $(INCPATH) $(LIBPATH) src/*.cpp -lshakespeare-mbcc -o bin/$(JOBNAME) -lshakespeare-mbcc
 
 mkdir:
 	mkdir -p bin
-
-buildBin: mkdir
-	$(CPP) $(CFLAGS) $(INCPATH) $(LIBPATH) src/*.cpp -lshakespeare -o bin/$(JOBNAME)-x86 -lshakespeare
-
-buildQ6: mkdir
-	$(MICROCPP) $(MICROCFLAGS) $(INCPATH) $(LIBPATH) src/*.cpp -lshakespeare-mbcc -o bin/$(JOBNAME) -lshakespeare-mbcc
 
 clean:
 	rm -f bin/*

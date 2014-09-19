@@ -21,6 +21,7 @@
 
 #define LOG_PATH "/home/logs"
 #define PROCESS "payload"
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -59,37 +60,12 @@ int logToShakespeare (string *peakTime, string *peakVal) {
 
 //Connect to I2C bus, return I2C handler
 int connectToI2C(int deviceAddress, string i2cBus) {
-  int file;
-  char *filename;
-  strcpy(filename, i2cBus.c_str());
-
-  if ((file = open(filename, O_RDONLY)) < 0) {
-    //TODO: Produce file error code here
-    return 1;
-  }
-  else if (ioct1(file, I2C_SLAVE, deviceAddress) < 0){
-    //TODO: Produce fail to acquire bus access or connect to slave error code
-    return 2;
-  }
-  else {
-    return file;
-  }
+  return 0;
 }
 
 //Returns one one 12-bit reading in the form of a char array
 char *readFromI2C (int i2cHandle) {
-  //TODO: 12 chars for buffers?
-  char rxBuffer[12] = "\0";
-  char txBuffer[12] = "\0";
-
-  if ((i2cHandle == 1) || (i2cHandle == 2) || (read(i2cHandle,rxBuffer,2) != 2)) {
-    //TODO: set proper error code for fail to read I2C bus
-    rxBuffer[0] = 2;
-    return rxBuffer;
-  }
-  else {
-    //TODO: Read from I2C and calculate voltage
-  }
+  return 0;
 }
 
 //TODO: Implement check event occurred function
