@@ -35,11 +35,12 @@ using namespace std;
 //Log array of strings using shakespeare
 int logToShakespeare (string *peakTime, string *peakVal);
 
-//Connect to I2C bus, return I2C handler
-int connectToI2C(int deviceAddress, string i2cBus);
+//Check if GPIO bus available, if so connect to it
+//TODO: is this necessary?
+int connectToGPIO ();
 
 //Returns one one 12-bit reading in the form of a char array
-char *readFromI2C (int i2cHandle);
+int readFromGPIO ();
 
 //TODO: Implement check event occurred function
 int checkEventOccurred ();

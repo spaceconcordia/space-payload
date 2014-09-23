@@ -42,10 +42,10 @@ using namespace std;
 #define NUM_MEASUREMENTS 1000 //Number of measurements to take in a row
 #define DEAD_TIME_SEC 0.002 //2ms dead time
 //TODO: Define proper I2C bus address
-#define I2C_BUS_ADDRESS "0x51"
+#define GPIO_BUS_ADDRESS "0x51"
 //TODO: Define proper Geiger counter device address
-#define I2C_DEVICE_ADDRESS 0x99
-#define I2C_PACKET_LENGTH 12
+#define ACTIVATE_PAYLOAD_BOARD_GPIO_ADDRESS "0x00"
+#define GPIO_PACKET_LENGTH 12
 
 int main(int argc, const char * argv[])
 {
@@ -56,12 +56,10 @@ int main(int argc, const char * argv[])
   string tempBinaryPeakData[NUM_MEASUREMENTS];
   string tempTimeData[NUM_MEASUREMENTS];
 
-  cout << CS1_SUCCESS;
-
   //Run the payload NUM_MEASUREMENTS times
   for (int i=0; i<NUM_MEASUREMENTS; i++) {
     //Geiger counter "turn on", record time it was "turned on"
-    if (activateGeiger() != 0) {
+    if (activateGeiger() != CS1_SUCCESS) {
       //TODO: Proper error code for geiger counter fail
       cout << "Geiger counter activation error";
       continue;
@@ -72,8 +70,8 @@ int main(int argc, const char * argv[])
 
     while (eventFlag == false) {
       //Check if an event has occurred
-      if (checkEventOccurred() == 0) {
-        //Set event flag true to move to next measurement
+      if (checkEventOccurred() == CS1_SUCCESS) {
+        //Set event flag true to move to next measurement after loop body runs
         eventFlag = true;
 
         //Once event is detected, determine elapsed time for detection
@@ -86,15 +84,18 @@ int main(int argc, const char * argv[])
         }
         //Log peak magnitude and detection times to temporary variables
         tempTimeData[i] = ((float)elapsed_time/CLOCKS_PER_SEC);
-        //Check if I2C available, if so read the peak value
 
-        if (readFromI2C(connectToI2C(I2C_DEVICE_ADDRESS, I2C_BUS_ADDRESS))[0] != 2) {
-          //TODO: Make more readable
-          tempBinaryPeakData[i] = readFromI2C(connectToI2C(I2C_DEVICE_ADDRESS, I2C_BUS_ADDRESS));
+        //Check if GPIO available, if so attempt to read data
+        int connectStatus = connectToGPIO();
+        if (connectStatus == CS1_SUCCESS) {
+          //TODO: Pass tempBinaryPeakData[i] to readFromGPIO()
+          int readStatus = readFromGPIO();
+          if (readStatus != CS1_SUCCESS) {
+            cout << "Failed to read from GPIO";
+          }
         }
         else {
-          //TODO: failed to connect to I2C condition
-          cout << "Failed to connect to I2C\n";
+          cout << "Failed to connect to GPIO\n";
         }
       }
     }
@@ -134,16 +135,14 @@ int logToShakespeare (string *peakTime, string *peakVal) {
   return 1;
 }
 
-//Note: I2C reading/connecting adapted from
-// http://elinux.org/Interfacing_with_I2C_Devices#Reading_from_the_ADC
-//Connect to I2C bus, return I2C handler
-int connectToI2C(int deviceAddress, string i2cBus) {
+//Connect to GPIO bus
+int connectToGPIO () {
+
   return CS1_SUCCESS;
 }
 
-//TODO look into pointers, allocate memory before passing pointer (no functions for allocating)
-//Returns one one 12-bit reading in the form of a char array
-int readFromI2C (char *data, int i2cHandle) {
+//Expects one 12-bit reading from GPIO in the form of a char array
+int readFromGPIO () {
 
   return CS1_SUCCESS;
 }
@@ -156,5 +155,6 @@ int checkEventOccurred () {
 
 //TODO: Implement activate geiger function
 int activateGeiger () {
+
   return CS1_SUCCESS;
 }
