@@ -32,15 +32,18 @@ using namespace std;
 
 //Prototype all functions here
 
-//Log array of strings using shakespeare
-int logToShakespeare (string *peakTime, string *peakVal);
+//Log char array with priority NOTICE  using shakespeare
+int logNoticeToShakespeare (char *data);
+
+//Log char array with priority ERROR  using shakespeare
+int logErrorToShakespeare (char *data);
 
 //Check if GPIO bus available, if so connect to it
 //TODO: is this necessary?
 int connectToGPIO ();
 
 //Returns one one 12-bit reading in the form of a char array
-int readFromGPIO ();
+int readFromGPIO (char *data);
 
 //TODO: Implement check event occurred function
 int checkEventOccurred ();

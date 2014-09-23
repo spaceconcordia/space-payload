@@ -21,12 +21,13 @@ Pseudo-Code:
 Questions:
 
 -How many measurements should be taken in between shakespeare logging (NUM_MEASUREMENTS)?
--Time difference is being recorded using clock ticks, but can the date/time be attached to
- each group of measurements from a higher process?
 -Will another process determine if Consat-1 is in anomoly and start payload?
 -List of error codes for entire project needed so new ones can be made spacedecl.h
 -Error codes in CPP file
 
+TODO:
+-Implement space-lib/utls/src Date.cpp BuildDateTimePreciseString()
+  -Include utls in payload Makefile
 */
 
 
@@ -46,6 +47,15 @@ using namespace std;
 //TODO: Define proper Geiger counter device address
 #define ACTIVATE_PAYLOAD_BOARD_GPIO_ADDRESS "0x00"
 #define GPIO_PACKET_LENGTH 12
+#define DATE_NUM_CHARS 100
+
+//Payload-specific error codes
+#define GEIGER_ACTIVATION_FAIL "0x02"
+#define GPIO_READ_FAIL "0x03"
+#define GPIO_CONNECT_FAIL "0x04"
+
+//General error codes
+#define SHAKESPEARE_LOG_FAIL "0x05"
 
 int main(int argc, const char * argv[])
 {
@@ -53,15 +63,18 @@ int main(int argc, const char * argv[])
   clock_t start_time;
   clock_t elapsed_time;
 
-  string tempBinaryPeakData[NUM_MEASUREMENTS];
-  string tempTimeData[NUM_MEASUREMENTS];
+  char tempBinaryPeakData[NUM_MEASUREMENTS][GPIO_PACKET_LENGTH];
+  char tempTimeData[NUM_MEASUREMENTS][DATE_NUM_CHARS];
 
   //Run the payload NUM_MEASUREMENTS times
   for (int i=0; i<NUM_MEASUREMENTS; i++) {
     //Geiger counter "turn on", record time it was "turned on"
     if (activateGeiger() != CS1_SUCCESS) {
-      //TODO: Proper error code for geiger counter fail
-      cout << "Geiger counter activation error";
+      //Log error code with priority ERROR
+      char err[5] = {0};
+      strcpy(err, GEIGER_ACTIVATION_FAIL);
+      logErrorToShakespeare(err);
+      //Move to next measurement attempt
       continue;
     }
 
@@ -83,56 +96,70 @@ int main(int argc, const char * argv[])
           //Do logging in here so this time isn't wasted?
         }
         //Log peak magnitude and detection times to temporary variables
-        tempTimeData[i] = ((float)elapsed_time/CLOCKS_PER_SEC);
+        float detectionTime = ((float)elapsed_time/CLOCKS_PER_SEC);
+        sprintf(tempTimeData[i], "%f", detectionTime);
 
         //Check if GPIO available, if so attempt to read data
         int connectStatus = connectToGPIO();
         if (connectStatus == CS1_SUCCESS) {
-          //TODO: Pass tempBinaryPeakData[i] to readFromGPIO()
-          int readStatus = readFromGPIO();
+          //Read frmo GPIO, store results in tempBinaryPeakData
+          int readStatus = readFromGPIO(tempBinaryPeakData[i]);
           if (readStatus != CS1_SUCCESS) {
-            cout << "Failed to read from GPIO";
+            char err[5] = {0};
+            strcpy(err, GPIO_READ_FAIL);
+            logErrorToShakespeare(err);
           }
         }
         else {
-          cout << "Failed to connect to GPIO\n";
+          char err[5] = {0};
+          strcpy(err, GPIO_CONNECT_FAIL);
+          logErrorToShakespeare(err);
         }
       }
     }
   }
   //Log all peak magnitude and detection times for all measurements using Shakspeare
-  if (logToShakespeare(tempTimeData, tempBinaryPeakData) == 0) {
-    cout << "Space-Payload Terminated Successfully!\n";
+  for (int i=0; i<NUM_MEASUREMENTS; i++) {
+    char *temp = strcat(tempTimeData[i], " ");
+    char *timeAndPeakData = strcat(temp, tempBinaryPeakData[i]);
+    if (logNoticeToShakespeare(timeAndPeakData) == CS1_SUCCESS) {
+      cout << "Space-Payload Terminated Successfully!\n";
+      return CS1_SUCCESS;
+    }
+    else {
+      cout << "Payload Terminated: Logging Error";
+    }
+  }
+}
+
+//Log char array with "NOTICE" priority using shakespeare
+int logNoticeToShakespeare (char *data) {
+  //Check for null pointer
+  if (data) {
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, data);
     return CS1_SUCCESS;
   }
   else {
-    cout << "Shakespeare logging error";
-    //TODO: Proper shakespeare logging error code
+    char err[5] = {0};
+    strcpy(err, SHAKESPEARE_LOG_FAIL);
+    logErrorToShakespeare(err);
     return 2;
   }
 }
 
-//Log array of strings using shakespeare
-int logToShakespeare (string *peakTime, string *peakVal) {
-  //Check for null pointers
-  if (peakTime && peakVal) {
-    //Check if dimensions of arrays match
-    if (sizeof(peakTime) == sizeof(peakVal)) {
-      for (size_t i=0; i<sizeof(peakTime); i++) {
-        string dataString = peakTime[i] + peakVal[i];
-        //TODO: set log priority to appropriate value
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, dataString);
-      }
-      //Sucess
-      return CS1_SUCCESS;
-    }
-    else {
-      //TODO: change to appropriate data error code
-      return 2;
-    }
+//Log char array with "NOTICE" priority using shakespeare
+int logErrorToShakespeare (char *data) {
+  //Check for null pointer
+  if (data) {
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, data);
+    return CS1_SUCCESS;
   }
-  //TODO: change to appropriate null pointer error code
-  return 1;
+  else {
+    char err[5] = {0};
+    strcpy(err, SHAKESPEARE_LOG_FAIL);
+    logErrorToShakespeare(err);
+    return 2;
+  }
 }
 
 //Connect to GPIO bus
@@ -142,7 +169,7 @@ int connectToGPIO () {
 }
 
 //Expects one 12-bit reading from GPIO in the form of a char array
-int readFromGPIO () {
+int readFromGPIO (char *data) {
 
   return CS1_SUCCESS;
 }
