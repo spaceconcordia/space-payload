@@ -42,6 +42,6 @@ int readFromGPIO (char *data);
 int checkEventOccurred ();
 
 //Turns "on" the Geiger counter
-int activateGeiger ();
+int setGeigerState (bool state);
 
 #endif /* !SPACE_PAYLOAD_H */

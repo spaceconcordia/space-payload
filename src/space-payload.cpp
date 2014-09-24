@@ -19,7 +19,7 @@ Pseudo-Code:
 
 TODO:
 -Implement space-lib/utls/src Date.cpp BuildDateTimePreciseString()
-  -Include utls in payload Makefile
+-Include utls in payload Makefile
 */
 
 #include <iostream>
@@ -54,7 +54,7 @@ int main(int argc, const char * argv[])
   char detectionTimeData[DATE_NUM_CHARS];
 
   //Geiger counter "turn on", record time it was activated
-  if (activateGeiger() != CS1_SUCCESS) {
+  if (setGeigerState(true) != CS1_SUCCESS) {
     //Log error code with priority ERROR
     char err[5] = {0};
     strcpy(err, GEIGER_ACTIVATION_FAIL);
@@ -94,7 +94,8 @@ int main(int argc, const char * argv[])
         logToShakespeare(err, "ERROR");
       }
 
-      //2ms dead time
+      //Turn "off" Geiger and start 2ms dead time
+      setGeigerState(false);
       start_time = clock();
       while ((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
       }
@@ -104,17 +105,17 @@ int main(int argc, const char * argv[])
     }
   }
 
-  //Log all peak magnitude and detection times using Shakspeare
-    char *temp = strcat(detectionTimeData, " ");
-    char *timeAndPeakData = strcat(temp, binaryPeakMagData);
-    if (logToShakespeare(timeAndPeakData, "NOTICE") == CS1_SUCCESS) {
-      cout << "Space-Payload Terminated Successfully!\n";
-      return CS1_SUCCESS;
-    }
-    else {
-      cout << "Payload Terminated: Check log for error";
-      return 1;
-    }
+  //Log peak magnitude and detection times using Shakspeare
+  char *temp = strcat(detectionTimeData, " ");
+  char *timeAndPeakData = strcat(temp, binaryPeakMagData);
+  if (logToShakespeare(timeAndPeakData, "NOTICE") == CS1_SUCCESS) {
+    cout << "Space-Payload Terminated Successfully!\n";
+    return CS1_SUCCESS;
+  }
+  else {
+    cout << "Payload Terminated: Check log for error";
+    return 1;
+  }
 }
 
 //-------------------------------------Custom Functions--------------------------------------
@@ -169,7 +170,12 @@ int checkEventOccurred () {
 }
 
 //TODO: Implement activate geiger function
-int activateGeiger () {
-
+int setGeigerState (bool state) {
+  if (state == true) {
+    //TODO: Turn "on" Geiger using GPIO
+  }
+  else if (state == false) {
+    //TODO: Turn "off" Geiger using GPIO
+  }
   return CS1_SUCCESS;
 }
