@@ -1,35 +1,26 @@
 /*
-Consat-1 Payload Simulation Version 5
+Consat-1 Payload Software Version 1
 Author: Austin Hubbell (September 2014)
 
 Note:
 -"detection time" is the time between the geiger counter being activated and a
- peak being read in from I2C
--One "measurement" is a single peak value and its detection time
--size_t not unsigned
+peak being detected
+-One "measurement" is a single peak magnitude and its corresponding detection time
 -Turning on the payload board and G_M counter is GPIO not I2C
 -Make I2C read function and place in utls folder in space lib
 -Add I2Cio library cpp to space-lib/
--Add date time ot each measurement or group of measurements
 
 Pseudo-Code:
--Activate geiger counter
--Wait for peak reading from I2C
--Record the peak value and detection time in temporary variable
--Log group of measurements to shakespeare
-
-Questions:
-
--How many measurements should be taken in between shakespeare logging (NUM_MEASUREMENTS)?
--Will another process determine if Consat-1 is in anomoly and start payload?
--List of error codes for entire project needed so new ones can be made spacedecl.h
--Error codes in CPP file
+1. Activate geiger counter
+2. Wait to detect peak
+3. Record peak detection time in temporary variable
+4. Record peak magnitude in temporary variable
+5. Log measurement variables to shakespeare
 
 TODO:
 -Implement space-lib/utls/src Date.cpp BuildDateTimePreciseString()
   -Include utls in payload Makefile
 */
-
 
 #include <iostream>
 #include <SpaceDecl.h>
@@ -39,8 +30,6 @@ TODO:
 
 using namespace std;
 
-#define RAW_PEAKS_FILE_PATH "rawPeaksData1.txt"
-#define NUM_MEASUREMENTS 1000 //Number of measurements to take in a row
 #define DEAD_TIME_SEC 0.002 //2ms dead time
 //TODO: Define proper I2C bus address
 #define GPIO_BUS_ADDRESS "0x51"
@@ -55,109 +44,108 @@ using namespace std;
 #define GPIO_CONNECT_FAIL "0x04"
 
 //General error codes
-#define SHAKESPEARE_LOG_FAIL "0x05"
+#define SHAKESPEARE_NULL_DATA_FAIL "0x05"
+#define SHAKESPEARE_PRIORITY_FORMAT_FAIL "0x06"
 
 int main(int argc, const char * argv[])
 {
-  //Timing variables
-  clock_t start_time;
-  clock_t elapsed_time;
+  //Main peak and detection time variables;
+  char binaryPeakMagData[GPIO_PACKET_LENGTH];
+  char detectionTimeData[DATE_NUM_CHARS];
 
-  char tempBinaryPeakData[NUM_MEASUREMENTS][GPIO_PACKET_LENGTH];
-  char tempTimeData[NUM_MEASUREMENTS][DATE_NUM_CHARS];
+  //Geiger counter "turn on", record time it was activated
+  if (activateGeiger() != CS1_SUCCESS) {
+    //Log error code with priority ERROR
+    char err[5] = {0};
+    strcpy(err, GEIGER_ACTIVATION_FAIL);
+    logToShakespeare(err, "ERROR");
+  }
+  //If activateGeiger() returns success, start timer
+  clock_t start_time = clock();
+  bool eventFlag = false;
 
-  //Run the payload NUM_MEASUREMENTS times
-  for (int i=0; i<NUM_MEASUREMENTS; i++) {
-    //Geiger counter "turn on", record time it was "turned on"
-    if (activateGeiger() != CS1_SUCCESS) {
-      //Log error code with priority ERROR
-      char err[5] = {0};
-      strcpy(err, GEIGER_ACTIVATION_FAIL);
-      logErrorToShakespeare(err);
-      //Move to next measurement attempt
-      continue;
-    }
+  //Continue checking for an event until checkEventOccurred() returns success
+  while (eventFlag == false) {
+    //Check if an event has occurred
+    if (checkEventOccurred() == CS1_SUCCESS) {
+      //Once event is detected, determine elapsed time for detection
+      clock_t elapsed_time = clock() - start_time;
 
-    start_time = clock();
-    bool eventFlag = false;
+      //Store peak detection time to temporary variable
+      float detectionTime = ((float)elapsed_time/CLOCKS_PER_SEC);
+      sprintf(detectionTimeData, "%f", detectionTime);
 
-    while (eventFlag == false) {
-      //Check if an event has occurred
-      if (checkEventOccurred() == CS1_SUCCESS) {
-        //Set event flag true to move to next measurement after loop body runs
-        eventFlag = true;
-
-        //Once event is detected, determine elapsed time for detection
-        elapsed_time = clock() - start_time;
-
-        //Begin 2ms dead time
-        start_time = clock();
-        while ((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
-          //Do logging in here so this time isn't wasted?
-        }
-        //Log peak magnitude and detection times to temporary variables
-        float detectionTime = ((float)elapsed_time/CLOCKS_PER_SEC);
-        sprintf(tempTimeData[i], "%f", detectionTime);
-
-        //Check if GPIO available, if so attempt to read data
-        int connectStatus = connectToGPIO();
-        if (connectStatus == CS1_SUCCESS) {
-          //Read frmo GPIO, store results in tempBinaryPeakData
-          int readStatus = readFromGPIO(tempBinaryPeakData[i]);
-          if (readStatus != CS1_SUCCESS) {
-            char err[5] = {0};
-            strcpy(err, GPIO_READ_FAIL);
-            logErrorToShakespeare(err);
-          }
-        }
-        else {
+      //Check if GPIO available, if so attempt to read peak magnitude data
+      int connectStatus = connectToGPIO();
+      if (connectStatus == CS1_SUCCESS) {
+        //Read from GPIO, store results in binaryPeakMagData
+        int readStatus = readFromGPIO(binaryPeakMagData);
+        //If reading from GPIO fails log error
+        if (readStatus != CS1_SUCCESS) {
           char err[5] = {0};
-          strcpy(err, GPIO_CONNECT_FAIL);
-          logErrorToShakespeare(err);
+          strcpy(err, GPIO_READ_FAIL);
+          logToShakespeare(err, "ERROR");
         }
       }
+      // If connecting to GPIO fails log error
+      else {
+        char err[5] = {0};
+        strcpy(err, GPIO_CONNECT_FAIL);
+        logToShakespeare(err, "ERROR");
+      }
+
+      //2ms dead time
+      start_time = clock();
+      while ((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
+      }
+
+      //Set event flag true to stop checking for events after loop body runs
+      eventFlag = true;
     }
   }
-  //Log all peak magnitude and detection times for all measurements using Shakspeare
-  for (int i=0; i<NUM_MEASUREMENTS; i++) {
-    char *temp = strcat(tempTimeData[i], " ");
-    char *timeAndPeakData = strcat(temp, tempBinaryPeakData[i]);
-    if (logNoticeToShakespeare(timeAndPeakData) == CS1_SUCCESS) {
+
+  //Log all peak magnitude and detection times using Shakspeare
+    char *temp = strcat(detectionTimeData, " ");
+    char *timeAndPeakData = strcat(temp, binaryPeakMagData);
+    if (logToShakespeare(timeAndPeakData, "NOTICE") == CS1_SUCCESS) {
       cout << "Space-Payload Terminated Successfully!\n";
       return CS1_SUCCESS;
     }
     else {
-      cout << "Payload Terminated: Logging Error";
+      cout << "Payload Terminated: Check log for error";
+      return 1;
+    }
+}
+
+//-------------------------------------Custom Functions--------------------------------------
+
+//Log char array with given priority using shakespeare
+int logToShakespeare (char *data, string priority) {
+  //Check for null pointer
+  if (data) {
+    //If the data is flagged as "NOTICE" priority, log it as such
+    if (priority.compare("NOTICE") == 0) {
+      Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, data);
+      return CS1_SUCCESS;
+    }
+    //If the data is flagged as "ERROR" priority, log it as such
+    else if (priority.compare("ERROR") == 0) {
+      Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, data);
+      return CS1_SUCCESS;
+    }
+    //If data is neither "NOTICE" nor "ERROR", log a priority formatting error
+    else {
+      char err[5] = {0};
+      strcpy(err, SHAKESPEARE_PRIORITY_FORMAT_FAIL);
+      Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, err);
+      return 2;
     }
   }
-}
-
-//Log char array with "NOTICE" priority using shakespeare
-int logNoticeToShakespeare (char *data) {
-  //Check for null pointer
-  if (data) {
-    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, data);
-    return CS1_SUCCESS;
-  }
+  //If data is null, log a null data error
   else {
     char err[5] = {0};
-    strcpy(err, SHAKESPEARE_LOG_FAIL);
-    logErrorToShakespeare(err);
-    return 2;
-  }
-}
-
-//Log char array with "NOTICE" priority using shakespeare
-int logErrorToShakespeare (char *data) {
-  //Check for null pointer
-  if (data) {
-    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, data);
-    return CS1_SUCCESS;
-  }
-  else {
-    char err[5] = {0};
-    strcpy(err, SHAKESPEARE_LOG_FAIL);
-    logErrorToShakespeare(err);
+    strcpy(err, SHAKESPEARE_NULL_DATA_FAIL);
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, err);
     return 2;
   }
 }
