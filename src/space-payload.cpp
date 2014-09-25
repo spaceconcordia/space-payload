@@ -34,27 +34,35 @@ using namespace std;
 //TODO: Define proper I2C bus address
 #define GPIO_BUS_ADDRESS "0x51"
 //TODO: Define proper Geiger counter device address
-#define ACTIVATE_PAYLOAD_BOARD_GPIO_ADDRESS "0x00"
+#define GEIGER_SWITCH_GPIO_ADDRESS "/dev/gpios/consat/GPIO_./value"
 #define GPIO_PACKET_LENGTH 12
-#define DATE_NUM_CHARS 100
+#define DATE_NUM_CHARS 10
 
 //Payload-specific error codes
-#define GEIGER_ACTIVATION_FAIL "0x02"
-#define GPIO_READ_FAIL "0x03"
-#define GPIO_CONNECT_FAIL "0x04"
+#define GEIGER_ACTIVATION_FAIL "2"
+#define GPIO_READ_FAIL "3"
+#define GPIO_CONNECT_FAIL "4"
 
 //General error codes
-#define SHAKESPEARE_NULL_DATA_FAIL "0x05"
-#define SHAKESPEARE_PRIORITY_FORMAT_FAIL "0x06"
+#define SHAKESPEARE_NULL_DATA_FAIL "5"
+#define SHAKESPEARE_PRIORITY_FORMAT_FAIL "6"
+#define NULL_FILE_POINTER_FAIL "7"
+#define CLOCK_FUNCTION_FAIL "8"
 
 int main(int argc, const char * argv[])
 {
+  //Check main function parameters
+  if (argc != 1 || (sizeof(argv)/sizeof(*argv)) != 1) {
+    cout << "Main function does not take any arugments";
+    return 1;
+  }
+
   //Main peak and detection time variables;
   char binaryPeakMagData[GPIO_PACKET_LENGTH];
   char detectionTimeData[DATE_NUM_CHARS];
 
   //Geiger counter "turn on", record time it was activated
-  if (setGeigerState(true) != CS1_SUCCESS) {
+  if (setGeigerState(true, GEIGER_SWITCH_GPIO_ADDRESS) != CS1_SUCCESS) {
     //Log error code with priority ERROR
     char err[5] = {0};
     strcpy(err, GEIGER_ACTIVATION_FAIL);
@@ -73,7 +81,7 @@ int main(int argc, const char * argv[])
 
       //Store peak detection time to temporary variable
       float detectionTime = ((float)elapsed_time/CLOCKS_PER_SEC);
-      sprintf(detectionTimeData, "%f", detectionTime);
+      snprintf(detectionTimeData, sizeof(float), "%f", detectionTime);
 
       //Check if GPIO available, if so attempt to read peak magnitude data
       int connectStatus = connectToGPIO();
@@ -94,11 +102,10 @@ int main(int argc, const char * argv[])
         logToShakespeare(err, "ERROR");
       }
 
-      //Turn "off" Geiger and start 2ms dead time
-      setGeigerState(false);
-      start_time = clock();
-      while ((clock() - start_time) < (DEAD_TIME_SEC*CLOCKS_PER_SEC)) {
-      }
+      //Turn "off" Geiger counter
+      setGeigerState(false, GEIGER_SWITCH_GPIO_ADDRESS);
+      //Execute 2ms dead time
+      deadTime(DEAD_TIME_SEC);
 
       //Set event flag true to stop checking for events after loop body runs
       eventFlag = true;
@@ -113,7 +120,7 @@ int main(int argc, const char * argv[])
     return CS1_SUCCESS;
   }
   else {
-    cout << "Payload Terminated: Check log for error";
+    cout << "Payload Terminated: Check log for specific error";
     return 1;
   }
 }
@@ -121,7 +128,7 @@ int main(int argc, const char * argv[])
 //-------------------------------------Custom Functions--------------------------------------
 
 //Log char array with given priority using shakespeare
-int logToShakespeare (char *data, string priority) {
+char logToShakespeare (char *data, string priority) {
   //Check for null pointer
   if (data) {
     //If the data is flagged as "NOTICE" priority, log it as such
@@ -152,30 +159,67 @@ int logToShakespeare (char *data, string priority) {
 }
 
 //Connect to GPIO bus
-int connectToGPIO () {
+char connectToGPIO () {
 
   return CS1_SUCCESS;
 }
 
 //Expects one 12-bit reading from GPIO in the form of a char array
-int readFromGPIO (char *data) {
+char readFromGPIO (char *data) {
+  //TODO: For debugging purposes only
+  string otherVar = data;
 
   return CS1_SUCCESS;
 }
 
 //TODO: Implement check event occurred function
-int checkEventOccurred () {
+char checkEventOccurred () {
 
   return CS1_SUCCESS;
 }
 
-//TODO: Implement activate geiger function
-int setGeigerState (bool state) {
+//Function to turn Geiger GPIO pin on/off
+char setGeigerState (bool state, string gpioAddress) {
+  //If true, activate Geiger using GPIO
+  char pinValue;
   if (state == true) {
-    //TODO: Turn "on" Geiger using GPIO
+    //TODO: Check "on" value is 1
+    pinValue = '1';
   }
   else if (state == false) {
-    //TODO: Turn "off" Geiger using GPIO
+    //TODO: Check "off" value is 0
+    pinValue = '0';
   }
-  return CS1_SUCCESS;
+  FILE* gpioSysFile;
+  gpioSysFile=fopen(gpioAddress.c_str(),"w");
+
+  //If file pointer not null, set GPIO to "pinValue"
+  if (gpioSysFile!=NULL) {
+    fputc(pinValue,gpioSysFile);
+    fclose(gpioSysFile);
+    return CS1_SUCCESS;
+  }
+  //If file pointer is null, log erorr to shakespeare and return error code
+  else {
+    char err[5] = {0};
+    strcpy(err, NULL_FILE_POINTER_FAIL);
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, err);
+    //Return single char error code from string
+    return GPIO_CONNECT_FAIL[0];
+  }
+}
+
+//Function for executing a certain duration of "dead time" in sec
+char deadTime (float sec) {
+  if (clock() != -1) {
+    time_t start_time = clock();
+    while ((clock() - start_time) < (sec*CLOCKS_PER_SEC)) {
+      //Do nothing during this itme
+    }
+    return CS1_SUCCESS;
+  }
+  else {
+    //Return single char error code from string
+    return CLOCK_FUNCTION_FAIL[0];
+  }
 }

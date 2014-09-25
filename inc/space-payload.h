@@ -29,19 +29,22 @@
 using namespace std;
 
 //Log char array with specified priority using shakespeare
-int logToShakespeare (char *data, string priority);
+char logToShakespeare (char *data, string priority);
+
+//Execute specified duration of dead time
+char deadTime (float sec);
 
 //Check if GPIO bus available, if so connect to it
 //TODO: is this necessary?
-int connectToGPIO ();
+char connectToGPIO ();
 
 //Returns one one 12-bit reading in the form of a char array
-int readFromGPIO (char *data);
+char readFromGPIO (char *data);
 
 //Checks if an event has been detected
-int checkEventOccurred ();
+char checkEventOccurred ();
 
 //Turns "on" the Geiger counter
-int setGeigerState (bool state);
+char setGeigerState (bool state, string gpioAddress);
 
 #endif /* !SPACE_PAYLOAD_H */
