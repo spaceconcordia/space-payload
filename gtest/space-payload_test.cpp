@@ -1,17 +1,17 @@
 #include "gtest/gtest.h"
 
-class space-payload_Test : public ::testing::Test
+class Space_Payload_Test : public ::testing::Test
 {
     protected:
-    virtual void SetUp() { }
-    int z=0;
+        virtual void SetUp() { }
+        int z=0;
 };
 //++++++++++++++++++++++++++++++++++++++logToShakespeare() Testing++++++++++++++++++++++++++++++++++++++++
 
 // The same process that leads to the final char array (timeAndPeakData) for logging is repeated here,
 // assuming proper data sent to binaryPeakMagData and detecionTime, then the logToShakespeare() function is called with
 // to log
-TEST_F(space-payload_Test, logCorrectDataNoticeShakespeare)
+TEST_F(Space_Payload_Test, logCorrectDataNoticeShakespeare)
 {
     clock_t start_time = clock();
     //The expected data from I2C should be a 12-bit char array
@@ -35,7 +35,7 @@ TEST_F(space-payload_Test, logCorrectDataNoticeShakespeare)
     );
 }
 
-TEST_F(space-payload_Test, logWrongLengthtDataNoticeShakespeare)
+TEST_F(Space_Payload_Test, logWrongLengthtDataNoticeShakespeare)
 {
     clock_t start_time = clock();
     //The expected data from I2C should be a 12-bit char array
@@ -66,7 +66,7 @@ TEST_F(space-payload_Test, logWrongLengthtDataNoticeShakespeare)
 //++++++++++++++++++++++++++++++++++setGeigerState() testing ++++++++++++++++++++++++++++++++++++++++++++++
 
 //Function is called to turn "on" Geiger counter GPIO pin at correct GPIO address
-TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
+TEST_F(Space_Payload_Test, correctGPIOsetGeigerStateOn)
 {
     int setGeigerStateReturn = setGeigerState(true, GEIGER_SWITCH_GPIO_ADDRESS)
 
@@ -77,7 +77,7 @@ TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
 }
 
 //Function is called to turn "off" Geiger counter GPIO pin at correct GPIO address
-TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
+TEST_F(Space_Payload_Test, correctGPIOsetGeigerStateOn)
 {
     int setGeigerStateReturn = setGeigerState(false, GEIGER_SWITCH_GPIO_ADDRESS)
 
@@ -88,7 +88,7 @@ TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
 }
 
 //Function is called to turn "on" Geiger counter GPIO pin at incorrect GPIO address
-TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
+TEST_F(Space_Payload_Test, correctGPIOsetGeigerStateOn)
 {
     //Incorrect GPIO address, should be /dev/gpios/consat/GPIO_./value
     string wrongAddress = "/dev/gpios/consat/gpio_./value";
@@ -103,7 +103,7 @@ TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
 }
 
 //Function is called to turn "off" Geiger counter GPIO pin at incorrect GPIO address
-TEST_F(space-payload_Test, correctGPIOsetGeigerStateOn)
+TEST_F(Space_Payload_Test, correctGPIOsetGeigerStateOn)
 {
     //Incorrect GPIO address, should be /dev/gpios/consat/GPIO_./value
     string wrongAddress = "/dev/gpios/consat/gpio_./value";

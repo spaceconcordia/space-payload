@@ -6,3 +6,4 @@ a.out
 *.a
 *.o
 bin/
+space-payload_test
