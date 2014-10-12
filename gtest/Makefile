@@ -20,7 +20,8 @@ GTEST_DIR = ../../gtest-1.7.0
 USER_DIR = ../
 SHAKES_DIR = ../../space-lib/shakespeare
 GLOBAL_INC_DIR = ../../space-lib/include/
-INCPATH=-I../inc/ -I$(SHAKES_DIR)/inc/ -I$(GLOBAL_INC_DIR)
+UTILS_DIR = ../../space-lib/utls/
+INCPATH=-I../inc/ -I$(SHAKES_DIR)/inc/ -I$(GLOBAL_INC_DIR) -I$(UTILS_DIR)/include
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -76,10 +77,10 @@ space-payload.o : $(USER_DIR)/src/space-payload.cpp $(SHAKES_DIR)/inc/shakespear
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/space-payload.cpp
 
 shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(SHAKES_DIR)/inc/shakespeare.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(INCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp 
+	$(CXX) $(CPPFLAGS) $(INCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
 
 space-payload_test : space-payload.o shakespeare.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -L$(UTILS_DIR)/lib -lcs1_utls -lrt
 
 space-payload_test.o : space-payload_test.cpp $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c space-payload_test.cpp
