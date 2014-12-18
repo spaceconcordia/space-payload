@@ -19,6 +19,8 @@
 #ifndef SPACE_PAYLOAD_H
 #define SPACE_PAYLOAD_H
 
+int SvetlanasFunction(char * input_data, char * output_data);
+
 // TODO prototype all functions here
 
 #endif /* !SPACE_PAYLOAD_H */
